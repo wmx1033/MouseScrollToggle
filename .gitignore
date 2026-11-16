@@ -1,0 +1,20 @@
+# macOS / editors
+.DS_Store
+.AppleDouble/
+.vscode/
+.idea/
+*.swp
+# Swift / build outputs
+.build/
+build/
+dist/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+# Local runtime and diagnostics
+*.log
+.tmp/
+.env
+.env.*
+!.env.example
+Tests/results/local/
