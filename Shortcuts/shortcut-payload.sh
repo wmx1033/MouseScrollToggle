@@ -178,7 +178,7 @@ final class ScrollService {
 }
 #endif
 MST_9bd50d831fa4ebe30b67928359914aa44b53251561433c78b62b9fd405205ed4
-cat > "$payload_dir/Scripts/common.sh" <<'MST_5b9a91b403b741a4099d6bd39051b85eed233008e36f4798af0e2399c46dc20c'
+cat > "$payload_dir/Scripts/common.sh" <<'MST_c8a0b6e1ce0bc454c8c9aa5faee5b00a28662d8297a4e58e95ee2338b16a8cd5'
 #!/bin/zsh
 set -euo pipefail
 umask 077
@@ -194,14 +194,19 @@ svc="$domain/$label"
 ctl=/bin/launchctl
 if [[ ${MST_TEST_MODE:-} == 1 ]]; then ctl=${MST_TEST_CTL:?}; fi
 fail() { print -u2 -- "错误：$1"; exit ${2:-1}; }
-mkdir -p "$cfg"
-chmod 700 "$cfg"
 [[ ! -L "$cfg" ]] || fail '配置目录不能是符号链接' 78
+mkdir -p "$cfg" || fail '配置目录无法创建，请检查目录权限' 78
+chmod 700 "$cfg" || fail '配置目录权限无法设置' 78
 zmodload zsh/system
 # Persistent inode: never unlink a lock that another waiter may have opened.
 [[ ! -L "$cfg/control.lock" ]] || fail '控制锁不能是符号链接' 78
 : >> "$cfg/control.lock"
 zsystem flock -t 10 -f lockfd "$cfg/control.lock" || fail '操作锁超时（10 秒），请稍后重试' 75
+source "${${(%):-%x}:A:h}/runtime.sh"
+MST_c8a0b6e1ce0bc454c8c9aa5faee5b00a28662d8297a4e58e95ee2338b16a8cd5
+cat > "$payload_dir/Scripts/runtime.sh" <<'MST_ed10978449f86e544bbe20d1570883947e621cafe9442d54a82323343c3a5bac'
+#!/bin/zsh
+# Shared functions only; caller initializes paths and owns the control lock.
 loaded() {
   if "$ctl" print "$svc" >"$cfg/service.txt" 2>/dev/null; then return 0; fi
   if [[ ${MST_TEST_MODE:-} != 1 ]]; then
@@ -311,21 +316,120 @@ assert_no_transaction() {
     return 1
   fi
 }
-MST_5b9a91b403b741a4099d6bd39051b85eed233008e36f4798af0e2399c46dc20c
-cat > "$payload_dir/Scripts/manifest.sh" <<'MST_83c5f79c3f7e3040c2d0775ac708b27e16bc633b731b6b02efa8dcb0d5c6e017'
+MST_ed10978449f86e544bbe20d1570883947e621cafe9442d54a82323343c3a5bac
+cat > "$payload_dir/Scripts/doctor.sh" <<'MST_c08a314a11c77892ae2300030fe4b1150c759e8a741032d5fa093fa2d51178de'
+#!/bin/zsh
+# A diagnostic snapshot; never bootstrap, bootout, compile or request permission.
+set -euo pipefail
+umask 077
+[[ $# == 0 || ${1:-} == --full-paths || ${1:-} == --redact ]] || { print -u2 '用法：doctor.sh [--redact|--full-paths]'; exit 64; }
+root=${0:A:h:h}
+cfg="$HOME/.config/mousescrolltoggle"
+bin="$HOME/.local/bin/mousescrolltoggle"
+logs="$HOME/Library/Logs/MouseScrollToggle"
+label=local.mousescrolltoggle
+ctl=/bin/launchctl
+if [[ ${MST_TEST_MODE:-} == 1 ]]; then label=${MST_TEST_LABEL:?}; ctl=${MST_TEST_CTL:?}; fi
+domain="gui/$(id -u)"; svc="$domain/$label"
+source "${0:A:h}/runtime.sh"
+# Bound protocol/tool probes as well as Tap challenges. Temp output is private.
+probe_dir=$(mktemp -d)
+probe_pid=''
+trap 'if [[ -n $probe_pid ]]; then kill -KILL "$probe_pid" 2>/dev/null || true; wait "$probe_pid" 2>/dev/null || true; fi; rm -rf "$probe_dir"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+probe() {
+  local rc=0 finished=0
+  "$@" > "$probe_dir/out" 2>/dev/null & probe_pid=$!
+  for i in {1..40}; do
+    if ! kill -0 "$probe_pid" 2>/dev/null; then finished=1; break; fi
+    sleep 0.05
+  done
+  if (( ! finished )); then
+    kill -KILL "$probe_pid" 2>/dev/null || true
+    wait "$probe_pid" 2>/dev/null || true
+    probe_pid=''; return 124
+  fi
+  wait "$probe_pid" || rc=$?
+  probe_pid=''
+  head -c 512 "$probe_dir/out"
+  return $rc
+}
+print 'MouseScrollToggle Diagnostics'
+if [[ ! -e "$bin" && ! -e "$cfg/agent.plist" ]]; then print 'INSTALLATION=NOT_INSTALLED'
+elif [[ -x "$bin" && -f "$cfg/agent.plist" && -f "$cfg/version" && -f "$cfg/source.sha256" ]]; then print 'INSTALLATION=PRESENT'
+else print 'INSTALLATION=INCOMPLETE 请检查二进制/plist/版本/源码摘要'; fi
+if [[ $(uname -s) == Darwin ]]; then print "OS=$(sw_vers -productVersion) build=$(sw_vers -buildVersion)"; else print 'OS=NOT_SUPPORTED 非 macOS'; fi
+print "ARCH=$(uname -m)"
+if xcode-select -p >/dev/null 2>&1 && compiler=$(xcrun --find swiftc 2>/dev/null); then
+  compiler_version=$(probe "$compiler" --version | head -1) || compiler_version=UNKNOWN
+  print -r -- "SWIFT=$compiler_version"
+else print 'SWIFT=UNAVAILABLE 请安装 Xcode Command Line Tools'; fi
+if [[ -x "$bin" ]]; then
+  print 'BINARY=PRESENT'
+  protocol=$(probe "$bin" --version) || protocol=UNKNOWN
+  print -r -- "PROTOCOL=$protocol"
+  rc=0; probe "$bin" --check-permission >/dev/null || rc=$?
+  case $rc in
+    0) print 'PERMISSION=AUTHORIZED 当前调用上下文已授权；服务仍需独立 Tap 健康确认' ;;
+    2) print 'PERMISSION=DENIED 未授权：系统设置 → 隐私与安全性 → 辅助功能' ;;
+    *) print 'PERMISSION=UNKNOWN 无法通过核心检查' ;;
+  esac
+else print 'BINARY=ABSENT'; print 'PROTOCOL=UNKNOWN 无可执行核心'; print 'PERMISSION=UNKNOWN 无核心，未探测权限'; fi
+if [[ -f "$cfg/version" ]]; then print -r -- "VERSION=$(head -c 128 "$cfg/version")"; else print 'VERSION=UNKNOWN 无版本记录'; fi
+# Do not create installation directories or lock files when absent.
+can_health=0
+if [[ -f "$cfg/control.lock" && ! -L "$cfg/control.lock" ]]; then
+  zmodload zsh/system
+  zsystem flock -t 10 -f lockfd "$cfg/control.lock" || { print -u2 '诊断忙碌：控制锁等待超时'; exit 75; }
+  can_health=1
+fi
+service=''
+if [[ ! -x "$ctl" ]]; then
+  print 'SERVICE=NOT_SUPPORTED 无 launchctl'; print 'PROCESS=UNKNOWN'; print 'TAP=UNKNOWN'
+elif service=$("$ctl" print "$svc" 2>/dev/null); then
+  print 'SERVICE=LOADED'
+  pid=$(print -r -- "$service" | sed -n 's/^[[:space:]]*pid = \([0-9]*\)$/\1/p')
+  if [[ $pid == <-> ]] && kill -0 "$pid" 2>/dev/null; then print "PROCESS=ALIVE pid=$pid"; else print 'PROCESS=NOT_RUNNING'; fi
+  if (( can_health )); then
+    if health; then print 'TAP=HEALTHY 本次挑战通过'; else print 'TAP=ERROR 服务已加载但未通过实时健康检查'; fi
+  else print 'TAP=UNKNOWN 缺少控制锁，跳过挑战'; fi
+else
+  if [[ ${MST_TEST_MODE:-} == 1 ]] || "$ctl" print "$domain" >/dev/null 2>&1; then
+    print 'SERVICE=NOT_LOADED'; print 'PROCESS=NOT_MANAGED'; print 'TAP=NOT_RUNNING 未托管实例的 Tap 状态未知'
+  else print 'SERVICE=UNKNOWN 无法访问 gui 用户域'; print 'PROCESS=UNKNOWN'; print 'TAP=UNKNOWN'; fi
+fi
+if [[ -f "$cfg/core.lock" && ! -L "$cfg/core.lock" ]]; then
+  zmodload zsh/system
+  if zsystem flock -t 0 -f probe "$cfg/core.lock" 2>/dev/null; then
+    print 'CORE_LOCK=FREE'; zsystem flock -u "$probe"
+  elif [[ -n $service ]]; then print 'CORE_LOCK=BUSY 服务存在，无法仅凭锁确定持有者'
+  else print 'CORE_LOCK=UNMANAGED_BUSY 请关闭前台实例；不向旧 PID 发信号'; fi
+else print 'CORE_LOCK=UNKNOWN 无锁文件或不安全路径'; fi
+pending=("$cfg"/.install.*/phase(N))
+print "TRANSACTIONS=$#pending"
+for phase in $pending; do
+  print -r -- "RECOVERY=未完成阶段 $(head -c 64 "$phase")"
+  if [[ ${1:-} == --full-paths ]]; then recovery="${phase:h}/recover.sh"; else recovery="~/.config/mousescrolltoggle/${phase:h:t}/recover.sh"; fi
+  if [[ ${1:-} == --full-paths ]]; then print -r -- "恢复：/bin/zsh ${(q)recovery}"; else print -r -- "恢复：/bin/zsh ${recovery}（可执行转义命令请用 --full-paths）"; fi
+done
+if [[ ${1:-} == --full-paths ]]; then print -r -- "LOGS=$logs"; else print 'LOGS=~/Library/Logs/MouseScrollToggle/{stdout,stderr}.log'; fi
+print 'NOTE=只读快照；已加载服务的检查可能写入 service.txt/request/response 并发送服务级 SIGUSR1；不创建 Tap、不授权、不启停。'
+MST_c08a314a11c77892ae2300030fe4b1150c759e8a741032d5fa093fa2d51178de
+cat > "$payload_dir/Scripts/manifest.sh" <<'MST_10f5c5f16c4b5383cdfc4bb7426b2cdcdb99b962f1544d501a07fd028fb44936'
 #!/bin/zsh
 # Ordered, explicit input set. Hashes use relative names, independent of checkout path.
-bundle_files=(VERSION Sources/MouseScrollToggle.swift Scripts/common.sh Scripts/manifest.sh Scripts/installer.sh Scripts/install.sh Scripts/control.sh Scripts/uninstall.sh Scripts/click.sh)
+bundle_files=(VERSION Sources/MouseScrollToggle.swift Scripts/common.sh Scripts/runtime.sh Scripts/doctor.sh Scripts/manifest.sh Scripts/installer.sh Scripts/install.sh Scripts/control.sh Scripts/uninstall.sh Scripts/click.sh)
 bundle_hash() ( cd "$root"; shasum -a 256 $bundle_files | shasum -a 256 | cut -d ' ' -f1 )
-MST_83c5f79c3f7e3040c2d0775ac708b27e16bc633b731b6b02efa8dcb0d5c6e017
-cat > "$payload_dir/Scripts/installer.sh" <<'MST_8bb3d2e11e091a6b05d212b2857123a1b70e3cfaf8309b9efc75e40bd2738f3b'
+MST_10f5c5f16c4b5383cdfc4bb7426b2cdcdb99b962f1544d501a07fd028fb44936
+cat > "$payload_dir/Scripts/installer.sh" <<'MST_0ba79a06b24d788fd4da4d9ca006116a1680626ffb8dc94808672b5fa77bc560'
 #!/bin/zsh
 # Internal function; caller owns control.lock. Subshell confines EXIT cleanup.
 install_main() (
 # 0: successful update stays stopped for an OFF click; rollback still restores old service.
 local restore_running=${1:-1}
 [[ $(id -u) != 0 ]] || fail '请以普通用户安装，不使用 sudo' 78
-mkdir -p "${bin:h}" "$logs"
+mkdir -p "${bin:h}" "$logs" || fail '安装目录或日志目录不可写，请检查用户目录权限' 78
 for f in "$bin" "$cfg/agent.plist" "$cfg/version" "$cfg/source.sha256" "$cfg/managed.sha256" "$cfg/bundle.sha256"; do
   [[ ! -L $f ]] || fail "拒绝符号链接：$f" 78
 done
@@ -333,6 +437,10 @@ if [[ -e "$cfg/agent.plist" ]]; then
   [[ -f "$cfg/managed.sha256" && $(shasum -a 256 "$cfg/agent.plist" | cut -d ' ' -f1) == $(cat "$cfg/managed.sha256") ]] || fail '配置冲突：请备份并移走 agent.plist 后重试；未覆盖用户配置' 78
 fi
 assert_no_transaction
+# Reject foreground owners before compiling/preparing a transaction. Keep guard held.
+initial_rc=0; loaded || initial_rc=$?
+(( initial_rc != 2 )) || exit 1
+if (( initial_rc == 1 )); then require_idle || exit 1; fi
 tmp=$(mktemp -d "$cfg/.install.XXXXXX")
 cleanup=1
 trap 'if (( cleanup )); then rm -rf "$tmp"; else print -u2 -- "错误：事务未完成，旧版本备份保留：$tmp"; print -r -u2 -- "恢复命令：/bin/zsh ${(q)tmp}/recover.sh"; fi' EXIT
@@ -374,6 +482,7 @@ restart=$changed
 if [[ -f "$cfg/agent.plist" ]] && ! cmp -s "$cfg/agent.plist" "$tmp/agent.plist"; then restart=1; fi
 # Prepare complete recovery material before touching installed files.
 cp "$root/Scripts/common.sh" "$tmp/common.sh"
+cp "$root/Scripts/runtime.sh" "$tmp/runtime.sh"
 print -r -- "$was_loaded" > "$tmp/was-loaded"
 cat > "$tmp/recover.sh" <<'RECOVER'
 #!/bin/zsh
@@ -415,7 +524,7 @@ cleanup=1
 print '安装成功（安装与开启分离；未运行的服务保持停止）'
 
 )
-MST_8bb3d2e11e091a6b05d212b2857123a1b70e3cfaf8309b9efc75e40bd2738f3b
+MST_0ba79a06b24d788fd4da4d9ca006116a1680626ffb8dc94808672b5fa77bc560
 cat > "$payload_dir/Scripts/install.sh" <<'MST_cfc92617276d3d9e5175c6d74686f0ab47157e665634c2eea31fea64e8fbb40e'
 #!/bin/zsh
 source "${0:A:h}/common.sh"
@@ -499,4 +608,8 @@ else
   print '鼠标滚轮反转：已开启'
 fi
 MST_31f9631007aa39c09f7cb12f4f6ad3c4dac1f8dc2113e56d6eddd85634c787ae
-/bin/zsh "$payload_dir/Scripts/click.sh"
+case ${1:-} in
+  --doctor) /bin/zsh "$payload_dir/Scripts/doctor.sh" ;;
+  '') /bin/zsh "$payload_dir/Scripts/click.sh" ;;
+  *) print -u2 '用法：载荷 [--doctor]'; exit 64 ;;
+esac

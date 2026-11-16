@@ -29,6 +29,12 @@ HEADER
     cat "$root/$f"
     print -r -- "$delimiter"
   done
-  print -r -- '/bin/zsh "$payload_dir/Scripts/click.sh"'
+  cat <<'FOOTER'
+case ${1:-} in
+  --doctor) /bin/zsh "$payload_dir/Scripts/doctor.sh" ;;
+  '') /bin/zsh "$payload_dir/Scripts/click.sh" ;;
+  *) print -u2 '用法：载荷 [--doctor]'; exit 64 ;;
+esac
+FOOTER
 } > "$output"
 chmod 700 "$output"

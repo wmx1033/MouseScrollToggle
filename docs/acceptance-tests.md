@@ -213,3 +213,7 @@ Apple Silicon 与 Intel 分别记录系统版本和测试结果。优先：MacBo
 ## Phase 3 补充验收
 
 自动化需执行 make shortcut-test 与 make check-shortcut，分别验证整次点击并发、离仓库载荷、版本/源码/脚本更新、失败停止切换及载荷清理后的恢复。人工 T14/T31：按 Shortcuts/README.md 创建一条 Mouse Scroll Toggle，使用实际 Shell 动作运行、授权、三次点击验证开关，再在第二台 Mac 同步并独立安装授权。记录 macOS/Swift/架构及实际结果；不能因载荷文件存在就标记创建或同步通过。
+
+## Phase 4 本轮结果
+
+T01–T31 的逐项层次、环境、实际操作、期望/实际、证据及剩余缺口集中在 [phase4-evidence.md](phase4-evidence.md)，兼容性在 compatibility.md，性能记录在 performance.md。自动化 PASS 仅覆盖相应层，不直接将整项硬件/跨设备验收勾为完成。真实系统入口为明确 opt-in 的 Tests/system-tests.sh --live；退出登录/休眠/重启和撤销权限由用户安排。

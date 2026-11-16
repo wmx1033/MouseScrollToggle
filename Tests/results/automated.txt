@@ -1,0 +1,12 @@
+Phase4 current worktree verification, 2026-11-16. Formal source identities in environment.txt.
+Automated results are isolated; no UI or hardware inference.
+make build: PASS native optimized build (output path omitted)
+make test: PASS: 44 checks (synthetic events only; no hardware claim)
+make integration-test: PASS: 88 isolated checks (mock launchctl and core; no system/hardware claim)
+make shortcut-test: PASS: 64 Phase 3 checks (isolated mocks; no UI/iCloud/hardware claim)
+make diagnostic-test: PASS: 37 diagnostic/failure checks (isolated adapters)
+make check-shortcut: PASS exact generated source match
+zsh -n Scripts/*.sh Tests/*.sh Shortcuts/shortcut-payload.sh (each file): PASS
+git diff --check: PASS
+Tests/cleanup-tests.sh: PASS: 6 failure/interruption cleanup checks (mock process, no launchctl)
+Reproduce via the commands above; see scripts for fault injection assertions.

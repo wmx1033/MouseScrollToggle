@@ -2,7 +2,7 @@
 set -euo pipefail
 root=${0:A:h:h}
 tmp=$(mktemp -d)
-trap 'if [[ -f "$HOME/mock-pid" ]]; then kill $(cat "$HOME/mock-pid") 2>/dev/null || true; fi; rm -rf "$tmp"' EXIT
+source "$root/Tests/test-support.sh"
 export HOME="$tmp/home space & xml"
 mkdir -p "$HOME" "$tmp/repo/Scripts" "$tmp/repo/Sources"
 cp "$root/VERSION" "$tmp/repo/VERSION"
@@ -86,7 +86,8 @@ check ./Scripts/control.sh stop
 : > "$HOME/.config/mousescrolltoggle/core.lock"
 rm -f "$HOME/.config/mousescrolltoggle/ready-pid"
 "$HOME/.local/bin/mousescrolltoggle" & holder=$!
-while [[ ! -e "$HOME/.config/mousescrolltoggle/ready-pid" ]]; do sleep 0.05; done
+for i in {1..40}; do [[ ! -e "$HOME/.config/mousescrolltoggle/ready-pid" ]] || break; sleep 0.05; done
+check test -e "$HOME/.config/mousescrolltoggle/ready-pid"
 print $$ > "$HOME/.config/mousescrolltoggle/ready-pid"
 for command in './Scripts/control.sh status' './Scripts/control.sh stop' './Scripts/uninstall.sh' './Scripts/install.sh'; do
   expect_fail zsh -c "$command"

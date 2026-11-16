@@ -3,6 +3,7 @@
 cat > "$tmp/core" <<'CORE'
 #!/bin/zsh
 [[ ${1:-} != --version ]] || { print test; exit; }
+[[ ${1:-} != --check-permission ]] || exit 64
 [[ ! -e "$HOME/not-ready" ]] || exit 2
 zmodload zsh/system
 : >> "$HOME/.config/mousescrolltoggle/core.lock"
@@ -10,7 +11,7 @@ zsystem flock -t 0 -f corefd "$HOME/.config/mousescrolltoggle/core.lock" || exit
 trap 'if [[ ! -e "$HOME/not-healthy" ]]; then print -r -- "$$ READY $(cat "$HOME/.config/mousescrolltoggle/request")" > "$HOME/.config/mousescrolltoggle/response"; fi' USR1
 trap 'exit 0' TERM
 print -rn -- $$ > "$HOME/.config/mousescrolltoggle/ready-pid"
-while true; do sleep 0.05; done
+for i in {1..3600}; do sleep 0.05; done
 CORE
 cat > "$tmp/build" <<'BUILD'
 #!/bin/zsh
@@ -39,6 +40,7 @@ case $1 in
  [[ ! -e "$HOME/fail-start" ]] || exit 1
  "$HOME/.local/bin/mousescrolltoggle" >/dev/null 2>&1 &
  print $! > "$HOME/mock-pid"
+ ps -p $(cat "$HOME/mock-pid") -o lstart= > "$HOME/mock-identity"
  touch "$HOME/loaded"
  sleep 0.1
  ;;

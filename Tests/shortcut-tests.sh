@@ -2,7 +2,7 @@
 set -euo pipefail
 root=${0:A:h:h}
 tmp=$(mktemp -d)
-trap 'if [[ -f "$HOME/mock-pid" ]]; then kill $(cat "$HOME/mock-pid") 2>/dev/null || true; fi; rm -rf "$tmp"' EXIT
+source "$root/Tests/test-support.sh"
 export HOME="$tmp/home space & <xml> ' quote" TMPDIR="$tmp/temp space & ' quote"
 mkdir -p "$HOME" "$TMPDIR" "$tmp/repo/Shortcuts" "$tmp/repo/Sources"
 cp -R "$root/Scripts" "$tmp/repo/Scripts"

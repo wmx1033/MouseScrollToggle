@@ -1,0 +1,13 @@
+Phase4 UI evidence E1, 2026-11-16
+1e03bb2798102a2dd276c8098a4e19bb78026308bbb0973917393ae366624eb8  Shortcuts/shortcut-payload.sh
+Created and saved Mouse Scroll Toggle via Shortcuts UI.
+Shell=/bin/zsh; admin=off; full embedded generated payload; Show Content bound to Shell Script Result.
+Three UI Shell executions verified with independent live health queries: RUNNING -> STOPPED -> RUNNING.
+Display Content action waited for result display; floating result text not readable through current automation surface. Cancelled only the display stage between executions.
+Editor closed and target shortcut observed in library and shortcuts list. No raw unrelated library names or screenshots retained.
+User subsequently confirmed all three displayed results and scrolling correct. Display text PASS (user observation); first-install UI authorization and true denied UI error presentation remain unverified.
+User also confirmed continuous scrolling during the requested sampling window and correct result-window text.
+User reported toggling the mousescrolltoggle accessibility entry OFF then ON for the permission-context test; no other entry changed by the agent.
+Final saved payload update: INSTALLATION completeness diagnostic field added after UI execution; normal click/control/core bodies unchanged. Diagnostic CLI regression separately passed.
+Final saved embedded payload SHA-256:
+a0081e7821997127fcfb6606bfd16900425361d0eeefbd70900501b98ddc36d1  Shortcuts/shortcut-payload.sh

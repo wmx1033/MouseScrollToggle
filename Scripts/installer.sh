@@ -4,7 +4,7 @@ install_main() (
 # 0: successful update stays stopped for an OFF click; rollback still restores old service.
 local restore_running=${1:-1}
 [[ $(id -u) != 0 ]] || fail '请以普通用户安装，不使用 sudo' 78
-mkdir -p "${bin:h}" "$logs"
+mkdir -p "${bin:h}" "$logs" || fail '安装目录或日志目录不可写，请检查用户目录权限' 78
 for f in "$bin" "$cfg/agent.plist" "$cfg/version" "$cfg/source.sha256" "$cfg/managed.sha256" "$cfg/bundle.sha256"; do
   [[ ! -L $f ]] || fail "拒绝符号链接：$f" 78
 done
@@ -12,6 +12,10 @@ if [[ -e "$cfg/agent.plist" ]]; then
   [[ -f "$cfg/managed.sha256" && $(shasum -a 256 "$cfg/agent.plist" | cut -d ' ' -f1) == $(cat "$cfg/managed.sha256") ]] || fail '配置冲突：请备份并移走 agent.plist 后重试；未覆盖用户配置' 78
 fi
 assert_no_transaction
+# Reject foreground owners before compiling/preparing a transaction. Keep guard held.
+initial_rc=0; loaded || initial_rc=$?
+(( initial_rc != 2 )) || exit 1
+if (( initial_rc == 1 )); then require_idle || exit 1; fi
 tmp=$(mktemp -d "$cfg/.install.XXXXXX")
 cleanup=1
 trap 'if (( cleanup )); then rm -rf "$tmp"; else print -u2 -- "错误：事务未完成，旧版本备份保留：$tmp"; print -r -u2 -- "恢复命令：/bin/zsh ${(q)tmp}/recover.sh"; fi' EXIT
@@ -53,6 +57,7 @@ restart=$changed
 if [[ -f "$cfg/agent.plist" ]] && ! cmp -s "$cfg/agent.plist" "$tmp/agent.plist"; then restart=1; fi
 # Prepare complete recovery material before touching installed files.
 cp "$root/Scripts/common.sh" "$tmp/common.sh"
+cp "$root/Scripts/runtime.sh" "$tmp/runtime.sh"
 print -r -- "$was_loaded" > "$tmp/was-loaded"
 cat > "$tmp/recover.sh" <<'RECOVER'
 #!/bin/zsh

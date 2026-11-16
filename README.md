@@ -2,7 +2,7 @@
 
 macOS 普通鼠标滚轮反转工具，使用 Swift + Zsh，由一条 macOS 快捷指令手动切换，触摸板继续保持自然滚动。
 
-**当前状态：Phase 1–3 代码和自包含载荷已实现，自动化通过；真实 Event Tap、快捷指令应用内执行、跨 Mac iCloud 同步及硬件验收未完成。**
+**当前状态：Phase 4 诊断与测试已实施。本机真实 Tap、生命周期及用户确认的鼠标/触摸板基本功能已通过；快捷指令正常开关及显示也获用户确认；跨 Mac 同步及完整兼容/稳定性验收仍未完成，不发布 v1.0。**
 
 ## 文档导航
 
@@ -11,9 +11,9 @@ macOS 普通鼠标滚轮反转工具，使用 Swift + Zsh，由一条 macOS 快�
 - [开发阶段与任务清单](docs/development-plan.md)
 - [验收测试规范](docs/acceptance-tests.md)
 - [测试报告](docs/test-report.md)
-- [安装与卸载设计](docs/installation.md)
+- [安装与卸载](docs/installation.md)
 - [权限说明](docs/permissions.md)
-- [故障排查设计](docs/troubleshooting.md)
+- [故障排查](docs/troubleshooting.md)
 - [快捷指令集成](Shortcuts/README.md)
 - [已知限制与待决策项](docs/known-limitations.md)
 
@@ -56,3 +56,7 @@ make uninstall
 ## 快捷指令
 
 主要快捷指令名为 **Mouse Scroll Toggle**。执行 `make shortcut` 生成 `Shortcuts/shortcut-payload.sh`，`make check-shortcut` 检查同步。按 [创建指南](Shortcuts/README.md) 将完整载荷粘贴到一个 Zsh Shell 动作，并添加显示结果。载荷不依赖仓库、网络下载或 Homebrew。安装和切换在同一串行流程中完成，更新失败不会继续切换。
+
+## 诊断与验收
+
+`make doctor` 输出当前系统、权限、服务、真实 Tap 健康和恢复信息，默认隐藏用户路径；`make diagnostic-test` 运行隔离诊断回归。无仓库时可对保存的完整载荷执行 `/bin/zsh shortcut-payload.sh --doctor`，不会安装或切换。实际硬件、系统和自动化证据逐项见 [Phase 4 证据表](docs/phase4-evidence.md)，性能与兼容记录单独保存；尚不发布 v1.0。

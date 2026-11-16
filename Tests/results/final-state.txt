@@ -1,0 +1,18 @@
+STOPPED 已停止
+MouseScrollToggle Diagnostics
+OS=27.2.1 build=26B131
+ARCH=arm64
+SWIFT=Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)
+BINARY=PRESENT
+PROTOCOL=core-protocol=1
+PERMISSION=AUTHORIZED 当前调用上下文已授权；服务仍需独立 Tap 健康确认
+VERSION=0.3.0
+SERVICE=NOT_LOADED
+PROCESS=NOT_MANAGED
+TAP=NOT_RUNNING 未托管实例的 Tap 状态未知
+CORE_LOCK=FREE
+TRANSACTIONS=0
+LOGS=~/Library/Logs/MouseScrollToggle/{stdout,stderr}.log
+NOTE=只读快照；已加载服务的检查可能写入 service.txt/request/response 并发送服务级 SIGUSR1；不创建 Tap、不授权、不启停。
+STOPPED 已停止
+STOPPED 已停止

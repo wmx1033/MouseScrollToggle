@@ -1,0 +1,26 @@
+启动失败：核心未就绪，请检查辅助功能权限和日志（服务保留以供诊断）
+READY: Event Tap 已启用（前台运行，Ctrl-C 停止）
+READY: Event Tap 已启用（前台运行，Ctrl-C 停止）
+READY: Event Tap 已启用（前台运行，Ctrl-C 停止）
+READY: Event Tap 已启用（前台运行，Ctrl-C 停止）
+READY: Event Tap 已启用（前台运行，Ctrl-C 停止）
+启动失败：未获得辅助功能权限
+请打开：系统设置 → 隐私与安全性 → 辅助功能；授权后重试
+start_exit=1
+ERROR 服务已加载但核心未就绪、权限缺失或 Tap 不健康
+status_exit=1
+MouseScrollToggle Diagnostics
+OS=27.2.1 build=26B131
+ARCH=arm64
+SWIFT=Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)
+BINARY=PRESENT
+PROTOCOL=core-protocol=1
+PERMISSION=AUTHORIZED 当前调用上下文已授权；服务仍需独立 Tap 健康确认
+VERSION=0.3.0
+SERVICE=LOADED
+PROCESS=NOT_RUNNING
+TAP=ERROR 服务已加载但未通过实时健康检查
+CORE_LOCK=FREE
+TRANSACTIONS=0
+LOGS=~/Library/Logs/MouseScrollToggle/{stdout,stderr}.log
+NOTE=只读快照；已加载服务的检查可能写入 service.txt/request/response 并发送服务级 SIGUSR1；不创建 Tap、不授权、不启停。

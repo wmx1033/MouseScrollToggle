@@ -1,0 +1,21 @@
+Phase4 environment: 2026-11-16; baseline 0c706b5 + Phase4 changes (hashes below)
+ProductName:		macOS
+ProductVersion:		27.2.1
+BuildVersion:		26B131
+arm64
+Mac15,12
+swift-driver version: 1.168.6 Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)
+Target: arm64-apple-macosx27.2.0
+9bd50d831fa4ebe30b67928359914aa44b53251561433c78b62b9fd405205ed4  Sources/MouseScrollToggle.swift
+666e518446bfc1341d2e9c54885ff0a54394b61ba09c5383377c9c219ac474ba  Scripts/build.sh
+31f9631007aa39c09f7cb12f4f6ad3c4dac1f8dc2113e56d6eddd85634c787ae  Scripts/click.sh
+c8a0b6e1ce0bc454c8c9aa5faee5b00a28662d8297a4e58e95ee2338b16a8cd5  Scripts/common.sh
+d96118e8a176bc633e7a594f75caa937321b59885028bb9e2f4e3c36dff9e9af  Scripts/control.sh
+c08a314a11c77892ae2300030fe4b1150c759e8a741032d5fa093fa2d51178de  Scripts/doctor.sh
+57f960e992453710e484ac7dae4f7afe1bd3cb9988b3fda72d084d010cb30bb8  Scripts/generate-shortcut.sh
+cfc92617276d3d9e5175c6d74686f0ab47157e665634c2eea31fea64e8fbb40e  Scripts/install.sh
+0ba79a06b24d788fd4da4d9ca006116a1680626ffb8dc94808672b5fa77bc560  Scripts/installer.sh
+10f5c5f16c4b5383cdfc4bb7426b2cdcdb99b962f1544d501a07fd028fb44936  Scripts/manifest.sh
+ed10978449f86e544bbe20d1570883947e621cafe9442d54a82323343c3a5bac  Scripts/runtime.sh
+fd86d9ad703831d3f882775ab45aa53b2519911474edbe6930caef7aa2cf31de  Scripts/uninstall.sh
+d915cc95d6ca8f47ae297713ed46d4e5c5d99ddd29fc3c61e263bdf305f2b5b0  VERSION

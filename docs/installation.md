@@ -40,3 +40,5 @@ stdout 首词为稳定状态：NOT_INSTALLED、STOPPED、RUNNING、ERROR，后�
 检测到 `.install.*/phase` 即拒绝新安装/点击，打印恢复命令。旧快照现在也包含 old-bundle.sha256。恢复脚本与 common.sh 已独立保存到 ~/.config/mousescrolltoggle/.install.*，载荷解包清理不会使其失效。新的安装器为内部函数，调用者持有控制锁；未完成事务检查发生于新事务创建之前。
 
 已健康运行且需要核心更新时，本次关闭意图会传给共用安装器：停止旧服务、提交已验证编译产物后保持停止，不再为了恢复运行而启动新服务后立即关闭。独立安装默认保持原运行状态；更新失败回滚仍尝试恢复原服务。
+
+Phase 4：诊断入口为 Scripts/doctor.sh，或完整载荷的 --doctor 模式。未安装时不创建安装目录；缺失文件按 INSTALLATION=INCOMPLETE 报告。运行函数已提取到 runtime.sh，因此新的事务恢复材料必须同时保留 common.sh、runtime.sh、recover.sh；生成器与隔离恢复测试已同步。未加载服务时安装先取得核心锁，再编译和准备事务，拒绝前台实例不会额外留下待恢复事务。

@@ -1,0 +1,5 @@
+shortcut_error_exit=0
+stdout_bytes=31
+stdout=鼠标滚轮反转：已开启
+Independent status=RUNNING; doctor TAP=HEALTHY.
+This did NOT reproduce a denied shortcut context. Only the direct control context failed after the user reported disabling the binary entry. No claim of complete authorization-chain revocation.

@@ -1,0 +1,9 @@
+# mode=scroll pid=2737 warmup=10s interval=10s duration=60s; healthy service required each sample; ps recent CPU and RSS KiB
+seconds,cpu_percent,rss_kib
+0,0.0,7472
+10,0.0,7472
+20,0.0,7472
+30,0.0,7472
+40,0.0,7472
+50,0.0,7488
+60,0.4,7488

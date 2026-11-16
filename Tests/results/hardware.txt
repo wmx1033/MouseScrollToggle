@@ -1,0 +1,11 @@
+# E1 verbose summary, no event payloads persisted
+discrete_invert=260
+continuous_passthrough=484
+foreground_SIGINT_exit=0
+User confirmation 2026-11-16:
+MacBook built-in trackpad + Xiaomi Wireless Mouse 3, 2.4GHz.
+Mouse up/down traditional direction: PASS (user observed).
+Trackpad up/down and inertia unchanged: PASS (user observed).
+Alternating and rapid scrolling: PASS; no double/loop/persistent loss or noticeable latency reported (subjective).
+2.4GHz receiver replug and retest: PASS (user confirmed).
+No HID source identification is inferred from event counts.
