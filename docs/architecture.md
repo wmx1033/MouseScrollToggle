@@ -1,6 +1,6 @@
 # 架构设计基线
 
-状态：设计，未实现。完整需求以 [需求基线](requirements.md) 为准。
+状态：核心已实现；控制层与快捷指令仍为设计。完整需求以 [需求基线](requirements.md) 为准。
 
 ## 数据与控制流
 
@@ -26,3 +26,5 @@ Event Tap 加入 RunLoop；处理 timeout/userInput 禁用事件，恢复次数�
 二进制固定在 `~/.local/bin/mousescrolltoggle`；配置目录保存 agent.plist、version、source.sha256；日志位于 `~/Library/Logs/MouseScrollToggle/`。日志必须设大小上限和轮转策略，具体限额待实现。
 
 相同源码跳过编译；仅版本文本变化不替换核心二进制。变更使用临时产物验证后替换，失败恢复旧二进制、配置、版本及合理的原运行状态。不得静默覆盖未知用户配置。每台 Mac 本地编译和授权，运行状态及日志不参与 iCloud 同步。
+
+Phase 1 决策：Fixed Point 使用 double accessor 保留小数；整数最小值及无法安全反向的 Fixed Point 整事件放行。恢复限制每进程最多 3 次，超限退出。当前仅提供前台 READY 初始化确认，持续健康协议留待 Phase 2。

@@ -1,4 +1,6 @@
-# Zsh 控制脚本（待实现）
+# Zsh 控制脚本
+
+`build.sh` 已实现：使用 xcrun 检查工具链，本机优化编译，临时产物成功后替换 build/mousescrolltoggle，失败保留旧产物。其余脚本待 Phase 2。
 
 保留规划中的 `.sh` 文件名，实际使用 `#!/bin/zsh`。
 

@@ -26,3 +26,16 @@
 ## 初始化验证
 
 初始化检查只验证目录、需求原文一致性、文档链接与 Makefile 入口，不代表产品验收通过。具体检查结果见本次交付说明。
+
+## Phase 1 实施记录（2026-11-16）
+
+- 环境：Apple Silicon arm64；Swift 6.4.2，编译器目标 arm64-apple-macosx27.2.0。
+- `make build`：PASS，优化编译生成 build/mousescrolltoggle。
+- `make test`：PASS，35 项断言；覆盖 T17/T18 的最小事件/纯函数范围与 T19 的恢复预算部分。
+- `zsh -n Scripts/build.sh Tests/run-tests.sh`：PASS。
+- `--help`、`--version`：PASS。
+- `--check-permission`：输出未授权；实际启动返回 2，并输出系统设置授权指引。权限失败路径符合预期。
+- 实际服务未进入运行状态；T01–T06、真实 Tap 创建、禁用恢复、信号清理、权限撤销、性能和 Intel 均未验证。
+- Phase 1 实现已交付，但“鼠标反转、触摸板不变”的硬件验收未完成；不宣称整个 Phase 1 验收或 v1.0 发布完成。
+
+以上新记录更新初始化快照中编译与自动化测试的状态；其他未验证项目保持原状。
