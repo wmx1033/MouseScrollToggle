@@ -1,6 +1,6 @@
 #!/bin/zsh
 source "${0:A:h}/common.sh"
-stop_service
+stop_service || exit $?
 if [[ -e "$cfg/agent.plist" ]]; then
   [[ -f "$cfg/managed.sha256" && $(shasum -a 256 "$cfg/agent.plist" | cut -d ' ' -f1) == $(cat "$cfg/managed.sha256") ]] || fail '配置已修改：服务已停止，请备份并移走 agent.plist 后重试卸载' 78
 fi

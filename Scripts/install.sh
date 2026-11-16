@@ -9,7 +9,8 @@ if [[ -e "$cfg/agent.plist" ]]; then
   [[ -f "$cfg/managed.sha256" && $(shasum -a 256 "$cfg/agent.plist" | cut -d ' ' -f1) == $(cat "$cfg/managed.sha256") ]] || fail '配置冲突：请备份并移走 agent.plist 后重试；未覆盖用户配置' 78
 fi
 tmp=$(mktemp -d "$cfg/.install.XXXXXX")
-trap 'rm -rf "$tmp"' EXIT
+cleanup=1
+trap 'if (( cleanup )); then rm -rf "$tmp"; else print -u2 -- "错误：事务未完成，旧版本备份保留：$tmp"; print -r -u2 -- "恢复命令：/bin/zsh ${(q)tmp}/recover.sh"; fi' EXIT
 hash=$(shasum -a 256 "$root/Sources/MouseScrollToggle.swift" | cut -d ' ' -f1)
 changed=1
 if [[ -x "$bin" && -f "$cfg/source.sha256" && $(cat "$cfg/source.sha256") == $hash ]]; then changed=0; fi
@@ -39,24 +40,50 @@ files=(agent.plist version source.sha256 managed.sha256)
 for f in $files; do [[ ! -e "$cfg/$f" ]] || cp -p "$cfg/$f" "$tmp/old-$f"; done
 [[ ! -e "$bin" ]] || cp -p "$bin" "$tmp/old-binary"
 was_loaded=0
-if loaded; then was_loaded=1; fi
+rc=0; loaded || rc=$?
+(( rc != 2 )) || exit 1
+if (( rc == 0 )); then was_loaded=1; fi
 # Version-only updates do not interrupt a healthy service.
 restart=$changed
 if [[ -f "$cfg/agent.plist" ]] && ! cmp -s "$cfg/agent.plist" "$tmp/agent.plist"; then restart=1; fi
-if (( was_loaded && restart )); then stop_service; fi
+# Prepare complete recovery material before touching installed files.
+cp "${0:A:h}/common.sh" "$tmp/common.sh"
+print -r -- "$was_loaded" > "$tmp/was-loaded"
+cat > "$tmp/recover.sh" <<'RECOVER'
+#!/bin/zsh
+[[ "$HOME" == $(cat "${0:A:h}/expected-home") ]] || { print -u2 '恢复 HOME 不匹配'; exit 1; }
+source "${0:A:h}/common.sh"
+backup=${0:A:h}
+stop_service || exit 1
+restore_files "$backup" || { print -u2 "恢复文件失败，备份保留：$backup"; exit 1; }
+if [[ $(cat "$backup/was-loaded") == 1 ]]; then
+  start_service || { print -u2 "旧服务恢复失败，备份保留：$backup"; exit 1; }
+fi
+rm -rf "$backup"
+print '旧版本已完整恢复'
+RECOVER
+print -r -- "$HOME" > "$tmp/expected-home"
+cleanup=0
+print PREPARED > "$tmp/phase"
+if (( was_loaded && restart )); then stop_service || exit 1
+elif (( ! was_loaded )); then require_idle || exit 1
+fi
 commit_install() {
+  print REPLACING > "$tmp/phase"
   if (( changed )); then chmod 700 "$tmp/binary"; mv "$tmp/binary" "$bin" || return 1; fi
   for f in $files; do mv "$tmp/$f" "$cfg/$f" || return 1; done
   if (( was_loaded && restart )); then start_service || return 1; fi
 }
 if ! commit_install; then
   print -u2 '更新失败：正在回滚安装产物'
-  stop_service
-  if [[ -e "$tmp/old-binary" ]]; then mv "$tmp/old-binary" "$bin"; else rm -f "$bin"; fi
-  for f in $files; do
-    if [[ -e "$tmp/old-$f" ]]; then mv "$tmp/old-$f" "$cfg/$f"; else rm -f "$cfg/$f"; fi
-  done
-  if (( was_loaded )); then start_service || fail '产物已回滚，但旧服务健康恢复失败，请重新授权并 start' 1; fi
-  fail '更新失败，已恢复旧安装' 1
+  print ROLLING_BACK > "$tmp/phase"
+  stop_service || exit 1
+  restore_files "$tmp" || { print -u2 '错误：恢复文件失败，禁止启动不一致安装'; exit 1; }
+  if (( was_loaded )); then start_service || { print -u2 '错误：产物已回滚，但旧服务健康恢复失败'; exit 1; }; fi
+  cleanup=1
+  fail '更新失败，已完整恢复旧安装' 1
 fi
+# Commit point: all files installed and previous loaded state successfully restored.
+print COMMITTED > "$tmp/phase"
+cleanup=1
 print '安装成功（安装与开启分离；未运行的服务保持停止）'

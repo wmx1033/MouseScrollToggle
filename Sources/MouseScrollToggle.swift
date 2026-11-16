@@ -90,7 +90,7 @@ final class ScrollService {
         do { try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]) }
         catch { report("启动失败：无法创建运行目录：\(error)"); return 5 }
         lockFD = open(state.appendingPathComponent("core.lock").path, O_CREAT | O_RDWR | O_NOFOLLOW, 0o600)
-        guard lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) == 0 else { report("启动失败：已有核心实例或无法取得锁"); return 5 }
+        guard lockFD >= 0, lockf(lockFD, F_TLOCK, 0) == 0 else { report("启动失败：已有核心实例或无法取得锁"); return 5 }
         defer { close(lockFD) }
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         guard AXIsProcessTrustedWithOptions(options) else {

@@ -15,7 +15,7 @@
 - RUNNING：服务加载、进程存活且本次进程 Event Tap 健康得到确认。
 - ERROR：安装不完整、权限失败、服务异常或 Event Tap 不可用。
 
-不能以二进制存在、PID 存在或启动命令返回 0 宣称 RUNNING。健康协议需防止旧进程状态残留，具体机制待 Phase 2 确定。启停必须串行化并防止重复实例；首次安装完成后只启动一次。
+不能以二进制存在、PID 存在或启动命令返回 0 宣称 RUNNING。健康协议采用一次性 UUID 挑战，信号通过 launchctl 服务目标投递。启停必须串行化并防止重复实例；首次安装完成后只启动一次。
 
 服务标识 `local.mousescrolltoggle`，操作目标为 `gui/<uid>`。plist 位于 `~/.config/mousescrolltoggle/agent.plist`，禁止放入 `~/Library/LaunchAgents/`。手动 bootstrap，关闭 bootout；允许加载期间异常恢复，但须避免权限错误造成无限重启。退出登录后不自动恢复。
 
@@ -23,10 +23,12 @@ Event Tap 加入 RunLoop；处理 timeout/userInput 禁用事件，恢复次数�
 
 ## 安装与升级
 
-二进制固定在 `~/.local/bin/mousescrolltoggle`；配置目录保存 agent.plist、version、source.sha256；日志位于 `~/Library/Logs/MouseScrollToggle/`。日志必须设大小上限和轮转策略，具体限额待实现。
+二进制固定在 `~/.local/bin/mousescrolltoggle`；配置目录保存 agent.plist、version、source.sha256；日志位于 `~/Library/Logs/MouseScrollToggle/`。日志必须设大小上限和轮转策略，限额为核心每次写入前检查，超过 256 KiB 截断。
 
 相同源码跳过编译；仅版本文本变化不替换核心二进制。变更使用临时产物验证后替换，失败恢复旧二进制、配置、版本及合理的原运行状态。不得静默覆盖未知用户配置。每台 Mac 本地编译和授权，运行状态及日志不参与 iCloud 同步。
 
-Phase 1 决策：Fixed Point 使用 double accessor 保留小数；整数最小值及无法安全反向的 Fixed Point 整事件放行。恢复限制每进程最多 3 次，超限退出。当前仅提供前台 READY 初始化确认，持续健康协议留待 Phase 2。
+Phase 1 决策：Fixed Point 使用 double accessor 保留小数；整数最小值及无法安全反向的 Fixed Point 整事件放行。恢复限制每进程最多 3 次，超限退出。Phase 2 已实现独立健康挑战，READY 日志不作为健康依据。
 
 Phase 2 的实际协议、锁、日志和事务策略以 [安装指南](installation.md) 为准，替代上述待定设计。
+
+Review 修复：未加载服务但核心锁占用时为 ERROR，拒绝停止成功、卸载或替换，不对未托管 PID 发信号。破坏性操作必须持续持有核心锁，直到文件操作结束。安装事务分为准备、替换、回滚、提交；回滚失败保留完整不可消耗的旧快照及恢复脚本。细节见安装指南。
