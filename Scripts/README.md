@@ -1,15 +1,5 @@
-# Zsh 控制脚本
+# Zsh 脚本
 
-`build.sh` 已实现：使用 xcrun 检查工具链，本机优化编译，临时产物成功后替换 build/mousescrolltoggle，失败保留旧产物。其余脚本待 Phase 2。
+build.sh 编译到 build/；install.sh 安装；control.sh 控制；uninstall.sh 卸载；common.sh 共享锁、状态及生命周期。所有脚本使用 Zsh，不依赖 Homebrew。
 
-保留规划中的 `.sh` 文件名，实际使用 `#!/bin/zsh`。
-
-| 文件 | 责任 |
-|---|---|
-| build.sh | 检查工具链、本机编译、明确报告错误 |
-| install.sh | 幂等安装、稳定路径、配置保护、失败回滚 |
-| control.sh | start / stop / toggle / status / upgrade，串行化并发操作 |
-| uninstall.sh | 停止服务并清理项目自有资源 |
-| doctor.sh | 只读诊断系统、权限、服务及 Event Tap |
-
-所有路径正确引用，支持空格；不整体 sudo；不静默覆盖现有配置。成功返回 0，失败返回非零并提供中文具体原因；详细退出码待实现时统一定义。状态必须结合服务、进程和核心健康确认。
+完整协议、路径与退出码见 [安装指南](../docs/installation.md)。测试专用 MST_TEST_MODE、MST_TEST_CTL、MST_TEST_BUILD、MST_TEST_LABEL 仅用于隔离适配层；正常运行不要设置。MST_VERSION 可指定版本文本。

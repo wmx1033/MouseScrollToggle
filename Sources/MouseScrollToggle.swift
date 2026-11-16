@@ -1,6 +1,7 @@
 import Foundation
 import CoreGraphics
 import ApplicationServices
+import Darwin
 
 struct VerticalDelta: Equatable {
     let line: Int64
@@ -42,10 +43,18 @@ struct RecoveryBudget {
 
 #if !TESTING
 func report(_ message: String) {
+    // launchd redirects stderr to a regular file. Bound it on every write;
+    // pipes/terminals simply fail the seek and retain normal behavior.
+    if let offset = try? FileHandle.standardError.seekToEnd(), offset > 262144 {
+        try? FileHandle.standardError.truncate(atOffset: 0)
+        try? FileHandle.standardError.seek(toOffset: 0)
+    }
     FileHandle.standardError.write(Data((message + "\n").utf8))
 }
 
 final class ScrollService {
+    let state = URL(fileURLWithPath: ProcessInfo.processInfo.environment["HOME"] ?? FileManager.default.homeDirectoryForCurrentUser.path).appendingPathComponent(".config/mousescrolltoggle")
+    var lockFD: Int32 = -1
     var tap: CFMachPort?
     var source: CFRunLoopSource?
     var signals: [DispatchSourceSignal] = []
@@ -78,6 +87,11 @@ final class ScrollService {
     }
 
     func run() -> Int32 {
+        do { try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]) }
+        catch { report("启动失败：无法创建运行目录：\(error)"); return 5 }
+        lockFD = open(state.appendingPathComponent("core.lock").path, O_CREAT | O_RDWR | O_NOFOLLOW, 0o600)
+        guard lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) == 0 else { report("启动失败：已有核心实例或无法取得锁"); return 5 }
+        defer { close(lockFD) }
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         guard AXIsProcessTrustedWithOptions(options) else {
             report("启动失败：未获得辅助功能权限\n请打开：系统设置 → 隐私与安全性 → 辅助功能；授权后重试")
@@ -105,15 +119,27 @@ final class ScrollService {
         }
         source = runSource
         CFRunLoopAddSource(CFRunLoopGetMain(), runSource, .commonModes)
-        for number in [SIGINT, SIGTERM] {
+        for number in [SIGINT, SIGTERM, SIGUSR1] {
             signal(number, SIG_IGN)
             let signalSource = DispatchSource.makeSignalSource(signal: number, queue: .main)
-            signalSource.setEventHandler { [weak self] in self?.stop() }
+            signalSource.setEventHandler { [weak self] in
+                guard let self else { return }
+                if number == SIGUSR1 {
+                    let request = self.state.appendingPathComponent("request")
+                    guard let nonce = try? String(contentsOf: request, encoding: .utf8),
+                          nonce.count == 37, let tap = self.tap else { return }
+                    let healthy = AXIsProcessTrusted() && CGEvent.tapIsEnabled(tap: tap)
+                    let response = "\(getpid()) \(healthy ? "READY" : "ERROR") \(nonce)"
+                    try? Data(response.utf8).write(to: self.state.appendingPathComponent("response"), options: .atomic)
+                } else { self.stop() }
+            }
             signalSource.resume()
             signals.append(signalSource)
         }
         CGEvent.tapEnable(tap: created, enable: true)
         guard CGEvent.tapIsEnabled(tap: created) else { return 3 }
+        try? Data("\(getpid())".utf8).write(to: state.appendingPathComponent("ready-pid"), options: .atomic)
+        defer { try? FileManager.default.removeItem(at: state.appendingPathComponent("ready-pid")) }
         report("READY: Event Tap 已启用（前台运行，Ctrl-C 停止）")
         CFRunLoopRun()
         return exitCode

@@ -1,5 +1,5 @@
-# 最小自动化测试
+# 测试
 
-执行 `make test`，由 run-tests.sh 编译核心与 event-tests.swift 到临时目录并执行，退出后清理。35 项断言覆盖分类、正负/零/边界值、Fixed Point 小数、三个垂直字段、水平与元数据保留、非滚动事件及恢复预算。
+`make test` 保留 35 项 Swift 合成事件/恢复预算检查。`make integration-test` 执行 24 项隔离检查：临时 HOME（包含空格与 &）、仓库副本、mock launchctl/core，不修改真实安装。覆盖安装幂等、版本变化、配置冲突、编译失败、回滚及旧服务恢复失败报告、启停幂等、首次 toggle、并发 start、暂停核心及陈旧响应、运行中卸载、重复卸载、未知文件保护与无 LaunchAgents。
 
-测试只构造 CGEvent，不向系统注入，不需要授权。纯函数边界不代表硬件能产生相同范围的事件。真实输入、权限撤销、Tap 禁用恢复和信号退出待授权后验证。完整控制脚本集成测试留待 Phase 2。
+模拟通过不证明真实 launchctl 或 Tap 行为。真实测试与人工步骤见 docs/test-report.md。

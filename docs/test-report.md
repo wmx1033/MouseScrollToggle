@@ -2,7 +2,7 @@
 
 基线日期：2026-11-16。阶段：仓库与文档初始化。
 
-产品结论：**未实现，未验证，不能发布 v1.0。**
+产品结论：**Phase 1/2 代码已实现，硬件与完整产品验收未完成，不能发布 v1.0。**
 
 | 范围 | 状态 | 说明 |
 |---|---|---|
@@ -39,3 +39,11 @@
 - Phase 1 实现已交付，但“鼠标反转、触摸板不变”的硬件验收未完成；不宣称整个 Phase 1 验收或 v1.0 发布完成。
 
 以上新记录更新初始化快照中编译与自动化测试的状态；其他未验证项目保持原状。
+
+## Phase 2 实施记录（2026-11-16）
+
+- make build：PASS；make test：PASS（35 项）；make integration-test：PASS（24 项隔离模拟检查）。
+- Zsh 语法检查及 git diff --check：PASS。
+- 真实系统测试：临时 HOME、独立 local.mousescrolltoggle.test.<pid>，使用实际 /bin/launchctl 和本机核心；install 成功，bootstrap 后核心报缺少辅助功能权限；start=1、status=ERROR/1；stop 与 uninstall 成功，临时目录已清理。没有修改真实用户安装。
+- 未验证：健康 Tap 的真实 SIGUSR1 响应、实际单实例争用、信号释放 Tap、系统禁用恢复、权限撤销、硬件滚动、休眠、登录退出/重新登录、Intel 和性能。
+- 人工步骤：授权稳定二进制，start/status 应 RUNNING；再次 start PID 应不变；直接运行第二实例应返回 5；发送 TERM 后 status 应 ERROR；再次 start 可恢复；撤销权限后查询应 ERROR；stop 后不应重启。开启后退出登录再登录，应 STOPPED；休眠唤醒、设备重连后按 T01–T06/T19/T22–T24 检查鼠标与触摸板。记录实际结果，不将此步骤表视为通过。
