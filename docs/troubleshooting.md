@@ -17,3 +17,5 @@
 前台核心占用：status 显示 ERROR；先在前台 Ctrl-C，重试 stop。不要删除 core.lock；陈旧 PID 文件不会触发停止信号。
 
 更新或恢复失败：按 stderr 给出的备份路径和 `/bin/zsh …/recover.sh` 命令恢复；先解决 bootout、辅助功能授权或目录写权限问题。恢复脚本会再次确认服务与核心均停止，再复制旧快照；恢复失败仍保留备份。完整说明见 installation.md。
+
+快捷指令：成功结果只来自最终健康检查；Shell 动作失败时查看其错误详情，不要继续显示成功。提示旧载荷拒绝降级时替换最新完整载荷；提示未完成事务时先运行给出的恢复脚本。若缺少 swiftc，手动安装 Xcode Command Line Tools。同步仅复制快捷指令文本，第二台 Mac 仍需独立编译和授权。创建、脚本许可与 iCloud 设置见 Shortcuts/README.md。

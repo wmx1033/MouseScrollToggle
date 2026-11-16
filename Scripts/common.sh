@@ -108,7 +108,7 @@ start_service() {
 
 restore_files() {
   local backup=$1 f target
-  for f in binary agent.plist version source.sha256 managed.sha256; do
+  for f in binary agent.plist version source.sha256 managed.sha256 bundle.sha256; do
     target="$cfg/$f"; [[ $f != binary ]] || target=$bin
     if [[ ${MST_TEST_MODE:-} == 1 && ${MST_TEST_RESTORE_FAIL:-} == "$f" ]]; then
       print -u2 "错误：测试注入恢复失败：$f"; return 1
@@ -119,4 +119,14 @@ restore_files() {
       rm -f "$target" || return 1
     fi
   done
+}
+
+assert_no_transaction() {
+  local pending=("$cfg"/.install.*/phase(N))
+  local recovery
+  if (( $#pending )); then
+    recovery="${pending[1]:h}/recover.sh"
+    print -r -u2 -- "错误：存在未完成事务，禁止叠加更新。请先恢复：/bin/zsh ${(q)recovery}"
+    return 1
+  fi
 }

@@ -5,60 +5,12 @@ tmp=$(mktemp -d)
 trap 'if [[ -f "$HOME/mock-pid" ]]; then kill $(cat "$HOME/mock-pid") 2>/dev/null || true; fi; rm -rf "$tmp"' EXIT
 export HOME="$tmp/home space & xml"
 mkdir -p "$HOME" "$tmp/repo/Scripts" "$tmp/repo/Sources"
+cp "$root/VERSION" "$tmp/repo/VERSION"
 cp "$root"/Scripts/*.sh "$tmp/repo/Scripts/"
 cp "$root/Sources/MouseScrollToggle.swift" "$tmp/repo/Sources/"
 export MST_TEST_LABEL="local.mousescrolltoggle.test.$$"
 export MST_TEST_MODE=1 MST_TEST_CTL="$tmp/ctl" MST_TEST_BUILD="$tmp/build"
-cat > "$tmp/core" <<'CORE'
-#!/bin/zsh
-[[ ${1:-} != --version ]] || { print test; exit; }
-zmodload zsh/system
-: >> "$HOME/.config/mousescrolltoggle/core.lock"
-zsystem flock -t 0 -f corefd "$HOME/.config/mousescrolltoggle/core.lock" || exit 5
-trap 'print -r -- "$$ READY $(cat "$HOME/.config/mousescrolltoggle/request")" > "$HOME/.config/mousescrolltoggle/response"' USR1
-trap 'exit 0' TERM
-print -rn -- $$ > "$HOME/.config/mousescrolltoggle/ready-pid"
-while true; do sleep 0.05; done
-CORE
-cat > "$tmp/build" <<'BUILD'
-#!/bin/zsh
-[[ ! -e "$HOME/fail-build" ]] || exit 1
-cp "${0:h}/core" "$1"
-chmod +x "$1"
-BUILD
-cat > "$tmp/ctl" <<'CTL'
-#!/bin/zsh
-case $1 in
- kill) kill -USR1 $(cat "$HOME/mock-pid");;
- print)
- [[ -e "$HOME/loaded" ]] || exit 1
- print "program = $HOME/.local/bin/mousescrolltoggle"
- print "pid = $(cat "$HOME/mock-pid")"
- ;;
- bootstrap)
- if [[ -e "$HOME/fail-once" ]]; then rm "$HOME/fail-once"; exit 1; fi
- if [[ -e "$HOME/fail-update" ]]; then
-   touch "$HOME/loaded" "$HOME/rollback-active"
-   print 99999999 > "$HOME/mock-pid"
-   return 1
- fi
- [[ ! -e "$HOME/fail-start" ]] || exit 1
- "$HOME/.local/bin/mousescrolltoggle" >/dev/null 2>&1 &
- print $! > "$HOME/mock-pid"
- touch "$HOME/loaded"
- sleep 0.1
- ;;
- bootout)
- if [[ -e "$HOME/rollback-active" ]]; then
-   [[ ! -e "$HOME/bootout-fail" ]] || exit 1
-   [[ ! -e "$HOME/bootout-timeout" ]] || exit 0
- fi
- kill $(cat "$HOME/mock-pid") 2>/dev/null || true
- rm -f "$HOME/loaded"
- ;;
-esac
-CTL
-chmod +x "$tmp"/{core,build,ctl}
+source "$root/Tests/mock-runtime.sh"
 cd "$tmp/repo"
 n=0
 check() { "$@" || { print -u2 "FAIL: $*"; exit 1; }; (( ++n )); }

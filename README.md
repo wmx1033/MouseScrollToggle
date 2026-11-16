@@ -2,7 +2,7 @@
 
 macOS 普通鼠标滚轮反转工具，使用 Swift + Zsh，由一条 macOS 快捷指令手动切换，触摸板继续保持自然滚动。
 
-**当前状态：Phase 2 进程控制代码已实现，自动化通过；真实 Event Tap 与硬件验收未完成。** 快捷指令载荷与 iCloud 留待 Phase 3。
+**当前状态：Phase 1–3 代码和自包含载荷已实现，自动化通过；真实 Event Tap、快捷指令应用内执行、跨 Mac iCloud 同步及硬件验收未完成。**
 
 ## 文档导航
 
@@ -52,3 +52,7 @@ make uninstall
 ```
 
 安装不启动；首次 toggle 只开启一次。退出码、回滚和配置冲突处理见安装指南。
+
+## 快捷指令
+
+主要快捷指令名为 **Mouse Scroll Toggle**。执行 `make shortcut` 生成 `Shortcuts/shortcut-payload.sh`，`make check-shortcut` 检查同步。按 [创建指南](Shortcuts/README.md) 将完整载荷粘贴到一个 Zsh Shell 动作，并添加显示结果。载荷不依赖仓库、网络下载或 Homebrew。安装和切换在同一串行流程中完成，更新失败不会继续切换。

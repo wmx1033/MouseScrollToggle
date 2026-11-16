@@ -153,7 +153,7 @@ final class ScrollService {
             print("用法：mousescrolltoggle [--verbose | --check-permission | --version | --help]")
             return
         }
-        if args == ["--version"] { print("1.0.0-dev"); return }
+        if args == ["--version"] { print("core-protocol=1"); return }
         if args == ["--check-permission"] {
             let trusted = AXIsProcessTrusted()
             print(trusted ? "辅助功能权限：已授权" : "辅助功能权限：未授权")

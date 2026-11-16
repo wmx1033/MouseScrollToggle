@@ -4,7 +4,7 @@
 
 ## Phase 2 实现（2026-11-16）
 
-安装：`./Scripts/install.sh`（或 `make install`），只安装，不开启。控制：`./Scripts/control.sh start|stop|toggle|status`。卸载：`./Scripts/uninstall.sh`（或 `make uninstall`）。快捷指令自包含载荷与 iCloud 属于 Phase 3。
+安装：`./Scripts/install.sh`（或 `make install`），只安装，不开启。控制：`./Scripts/control.sh start|stop|toggle|status`。卸载：`./Scripts/uninstall.sh`（或 `make uninstall`）。快捷指令自包含载荷已实现，创建及同步步骤见 ../Shortcuts/README.md。
 
 stdout 首词为稳定状态：NOT_INSTALLED、STOPPED、RUNNING、ERROR，后接中文说明。status：未安装返回 3，停止/健康运行返回 0，异常返回 1；操作成功返回 0，普通失败 1，未安装启动 3，参数错误 64，锁等待超时 75，配置冲突或不安全路径 78。核心保留 0/2/3/4/64，新增 5 表示单实例锁或运行目录失败。错误细节输出 stderr。
 
@@ -29,3 +29,14 @@ stdout 首词为稳定状态：NOT_INSTALLED、STOPPED、RUNNING、ERROR，后�
 失败时 stderr 输出备份路径及带 Shell 转义的 `/bin/zsh <备份目录>/recover.sh`。在同一用户、同一 HOME 下先关闭前台实例，解决权限或文件系统错误，再原样执行该命令；恢复脚本会取得控制锁、停止服务、取得核心锁、恢复全部文件，并按 was-loaded 决定是否恢复服务。失败保留备份供再次重试；成功才删除。不要手工删除锁或备份，不要在失败未恢复时继续安装另一版本。若需要手工取回文件，old-* 是完整快照，必须先确认核心停止，不能在活跃进程期间直接复制。
 
 陈旧 ready-pid/response 不触发直接 kill。健康信号交给 launchctl 按服务身份投递，UUID 响应仍必须匹配当前查询；未托管实例只依据内核锁判定“不能安全操作”，不尝试猜测 PID 身份。断电/SIGKILL 不保证自动恢复；已准备的备份保留，可使用恢复脚本。
+
+
+## Phase 3 一次点击
+
+按 [快捷指令指南](../Shortcuts/README.md) 创建 Mouse Scroll Toggle。运行载荷会先检查 Darwin、arm64/x86_64 和用户会话、未完成事务与本机版本，再执行安装器、单次切换、最终健康确认。若原先健康运行，更新成功后本次最终关闭；其他状态尝试开启。更新失败立即返回，不执行切换。首次安装不会先启动再关闭。缺权限时 stderr 提供系统设置指引，授权后重试；更新回滚失败时先按恢复命令处理。
+
+每次安装都计算 bundle.sha256 并纳入旧快照。三段数字 VERSION 为产品版本；0.3.0 是开发阶段版本。核心 --version 是 core-protocol=1，源码未变时仅改 VERSION 不替换核心。快捷指令拒绝旧数字版本降级；同版本内容不同会提示再更新，发布应递增版本。直接 install.sh 是显式本地安装入口，不套用快捷指令的拒绝降级策略。Phase 2 无 bundle.sha256 的 1.0.0-dev 安装可迁移。
+
+检测到 `.install.*/phase` 即拒绝新安装/点击，打印恢复命令。旧快照现在也包含 old-bundle.sha256。恢复脚本与 common.sh 已独立保存到 ~/.config/mousescrolltoggle/.install.*，载荷解包清理不会使其失效。新的安装器为内部函数，调用者持有控制锁；未完成事务检查发生于新事务创建之前。
+
+已健康运行且需要核心更新时，本次关闭意图会传给共用安装器：停止旧服务、提交已验证编译产物后保持停止，不再为了恢复运行而启动新服务后立即关闭。独立安装默认保持原运行状态；更新失败回滚仍尝试恢复原服务。
